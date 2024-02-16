@@ -1,0 +1,48 @@
+version: "3.8"
+
+services:
+
+  # Medusa app
+  web:
+    build: .
+    ports:
+      - "8000:5000"
+    volumes:
+      - "./:/app"
+      - "/app/node_modules"
+    environment:
+      NODE_ENV: ${NODE_ENV?error}
+    depends_on:
+      redis :
+        condition: "service_started"
+      postgres: 
+        condition: "service_started"
+    stdin_open: true
+    command: ["bun", "start"]
+
+  # Redis for caching
+  redis:
+    image: "redis:7.2-alpine"
+
+  # Database
+  postgres:
+    image: "postgres:latest"
+    ports:
+      - 5433:5433
+    restart: always
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+      PGDATA: /data/postgres
+      
+    volumes:
+      - ./dbdata:/data/postgres
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # Meilisearch
+  meilisearch:
+    image: "getmeili/meilisearch:latest"
+
+volumes:
+  pgdata:
